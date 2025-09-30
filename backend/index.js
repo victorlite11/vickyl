@@ -17,8 +17,9 @@ app.delete('/api/users/:id', (req, res) => {
     res.status(500).json({ error: 'Failed to delete user' });
   }
 });
-const db = new sqlite3.Database('lesson-spark.db');
-const SECRET = 'supersecretkey';
+const DB_FILE = process.env.DB_FILE || 'lesson-spark.db';
+const db = new sqlite3.Database(DB_FILE);
+const SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
 app.use(cors());
 app.use(express.json());
@@ -359,5 +360,5 @@ app.get('/api/exam-records/export/csv', auth, (req, res) => {
 });
 
 // --- SERVER ---
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log('Backend running on port', PORT));
