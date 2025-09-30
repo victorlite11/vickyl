@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import path from 'path';
 import fs from 'fs';
 import * as db from './db.js';
+import { seed } from './seed.js';
 
 const app = express();
 
@@ -384,6 +385,11 @@ async function start() {
   try {
     await db.init();
     await createTablesIfNeeded();
+    // Optionally auto-seed when AUTO_SEED is set
+    if (process.env.AUTO_SEED && process.env.AUTO_SEED !== '0') {
+      console.log('AUTO_SEED is set — running seed()');
+      try { await seed(); } catch (e) { console.warn('Auto-seed failed', e); }
+    }
     const PORT = process.env.PORT || 4000;
     app.listen(PORT, () => console.log('Backend running on port', PORT));
   } catch (e) {

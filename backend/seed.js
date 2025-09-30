@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 const SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
-async function seed() {
+export async function seed() {
   try {
     await db.init();
     console.log('Seeding DB...');
@@ -51,4 +51,7 @@ async function seed() {
   }
 }
 
-seed();
+// Run as script when invoked directly
+if (process.argv[1] && process.argv[1].endsWith('seed.js')) {
+  seed();
+}
