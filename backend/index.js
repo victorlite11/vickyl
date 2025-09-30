@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import * as db from './db.js';
 import { seed } from './seed.js';
 
@@ -15,6 +16,10 @@ const SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
 app.use(cors());
 app.use(express.json());
+
+// Provide __dirname for ES module scope
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // If a frontend build exists at ../dist, serve it as static files so
 // the backend can host both API and frontend for single-service deploys.
