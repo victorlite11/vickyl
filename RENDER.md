@@ -25,8 +25,22 @@ Notes:
   - Build Command: npm install; npm run build
   - Publish Directory: dist
 
-Alternative: Single Web Service
-- You can serve the built frontend from the backend by copying `dist` into backend/public and serving static files from Express. If you choose this, set the Root Directory to the repository root and use a combined build/start script.
+Alternative: Single Web Service (recommended)
+- The repository now supports serving the frontend from the backend for a single-service deploy on Render.
+- The GitHub Actions workflow will build the frontend, copy `dist` into `backend/dist`, and trigger a Render deploy.
+- To use this flow on Render:
+  - Create a Web Service and set Root Directory to `backend`.
+  - Build Command: `npm install`
+  - Start Command: `npm start`
+  - Environment variables: `JWT_SECRET` (string), `DATABASE_URL` (optional Postgres connection string if you want persistent DB)
+
+GitHub Actions / Render integration
+- The repo includes `.github/workflows/deploy-render.yml` which runs on push to `main`. It expects two repository secrets:
+  - `RENDER_API_KEY` — your Render API key (Account → API Keys)
+  - `RENDER_SERVICE_ID` — the Render service ID for the backend Web Service you want to deploy
+
+Notes about artifacts and builds
+- The workflow copies built frontend files into `backend/dist`. The backend will serve `backend/dist` when present. If you prefer, remove the workflow commit step that adds built files to the repo.
 
 Troubleshooting
 - If subject seeding or POST requests return 401/Invalid token: ensure JWT_SECRET is identical between your local dev and Render environment when you generate tokens.
