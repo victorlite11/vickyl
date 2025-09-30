@@ -46,6 +46,20 @@ Troubleshooting
 - If subject seeding or POST requests return 401/Invalid token: ensure JWT_SECRET is identical between your local dev and Render environment when you generate tokens.
 - To persist data, migrate to Postgres and set DB_URL or equivalent in env.
 
+Postgres on Render (quick guide)
+- Create a new "Postgres" managed database in Render.
+- After creation, copy the DATABASE_URL from the database dashboard; it looks like:
+
+  postgres://<user>:<password>@<host>:<port>/<dbname>
+
+- In Render Web Service settings, add an environment variable named `DATABASE_URL` with that value. The backend will automatically use Postgres when this variable is present.
+- Run migrations and seed on the server (you can run these once via Render's dashboard shell):
+
+  cd backend
+  npm ci
+  npm run migrate
+  npm run seed
+
 Security
 - Never commit JWT secrets to the repository. Use Render's Environment variables settings to store secrets.
 
