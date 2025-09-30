@@ -1,3 +1,86 @@
+# Deploying to Render
+
+This repository can be deployed to Render either as a single Web Service (backend serves the built frontend) or as two services (static frontend + backend API). Below are recommended build and start commands, required environment variables, and quick migration/seed steps.
+
+## Recommended environment variables
+
+Set these in the Render service's Environment (or in the Dashboard when creating the service):
+
+- `JWT_SECRET` — a long random secret for signing JWTs (required).
+- `DATABASE_URL` — (optional, recommended) Postgres connection string. If not set, the app will use the bundled SQLite file at `backend/lesson-spark.db` (SQLite is ephemeral on Render and not suitable for persistent production data).
+- `AUTO_SEED` — set to `1` if you want the seed script to run automatically on service start (useful for first deploy only).
+- `ADMIN_PASSWORD` / `TEACHER_PASSWORD` — optional overrides for seeded users.
+- `PORT` — Render sets this automatically; the backend reads `process.env.PORT`.
+
+## Option A — Single-service (recommended for simplicity)
+
+This makes the backend build the frontend and serve it from `backend/dist`.
+
+Render build command (set on the Web Service):
+
+```
+npm ci && npm run build && npm --prefix backend ci && rm -rf backend/dist && cp -r dist backend/dist
+```
+
+Notes:
+- `npm ci` installs root deps (frontend). `npm run build` builds the Vite app into `dist`.
+- `npm --prefix backend ci` installs backend deps. The `cp -r dist backend/dist` step copies the built frontend into the backend so the backend can serve everything from a single service.
+
+Render start command:
+
+```
+node backend/index.js
+```
+
+Render will provide a production `PORT` environment variable automatically.
+
+## Option B — Two services (frontend + backend)
+
+If you prefer to host the frontend separately as a static site and the backend as an API service (recommended for production scale and smaller surface for server-side), create two services:
+
+- Static Site (Frontend)
+  - Build command: `npm ci && npm run build`
+  - Publish directory: `dist`
+
+- Web Service (Backend)
+  - Build command: `npm --prefix backend ci`
+  - Start command: `node backend/index.js`
+  - Set `DATABASE_URL`, `JWT_SECRET`, and any other env vars on the backend service.
+
+When using a separate static frontend, set the frontend's API base URL in your Vite environment or environment variables to point at the backend service's URL.
+
+## Database & migrations
+
+If you use Postgres (recommended for production):
+
+1. Create a Postgres database on Render (or another host) and copy the `DATABASE_URL` into the backend service env.
+2. After the service deploys, open the Render shell for the backend service and run:
+
+```
+npm --prefix backend run migrate
+npm --prefix backend run seed
+```
+
+The `migrate` script creates tables using `CREATE TABLE IF NOT EXISTS` statements. The `seed` script seeds an admin and example teacher and prints tokens.
+
+If you use `AUTO_SEED=1`, the seed script will be invoked automatically on service start (useful for initial deploys only).
+
+## Troubleshooting
+
+- If the Render deploy fails due to missing secrets, make sure `RENDER_API_KEY` (if used with CI), `JWT_SECRET`, and `DATABASE_URL` are set where needed.
+- SQLite is not persistent on Render. For production, prefer Postgres and set `DATABASE_URL`.
+- If you prefer the GitHub Actions flow to build and copy the `dist` into `backend/dist`, ensure the workflow has the `RENDER_API_KEY` and `RENDER_SERVICE_ID` secrets configured in GitHub so the job can trigger publish.
+
+## Quick checklist before deploy
+
+- [ ] Add `JWT_SECRET` in Render environment.
+- [ ] Add `DATABASE_URL` (recommended) and create a Postgres instance.
+- [ ] Set `AUTO_SEED=1` only for the first deploy if you want example data.
+- [ ] Ensure `node backend/index.js` is set as the start command on the backend service.
+
+---
+
+If you want, I can also add a small Render template YAML or update the GitHub Actions workflow to more closely match the exact commands you plan to run on Render. Tell me which option (single-service or two-service) you'd like to use and I will adjust the docs/workflow accordingly and push it.
 Render deployment notes
 
 Recommended setup for Render (two services):
