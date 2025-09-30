@@ -16,24 +16,23 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Install frontend dependencies
-        run: npm ci
+      - name: Install frontend dependencies & build
+        run: |
+          npm ci
+          npm run build
 
-      - name: Build frontend
-        run: npm run build
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
 
       - name: Prepare backend to serve frontend
         run: |
+          rm -rf backend/dist || true
           mkdir -p backend/dist
           if [ -d dist ]; then
-            cp -r dist/* backend/dist/ || true
+            cp -r dist/* backend/dist/
           fi
-
-      - name: Install backend dependencies
-        working-directory: backend
-        run: npm ci
 
       - name: Commit built frontend into backend (optional)
         run: |
