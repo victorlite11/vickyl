@@ -4,6 +4,8 @@ import cors from 'cors';
 import sqlite3 from 'sqlite3';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import path from 'path';
+import fs from 'fs';
 
 const app = express();
 
@@ -23,6 +25,17 @@ const SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
 app.use(cors());
 app.use(express.json());
+
+// If a frontend build exists at ../dist, serve it as static files so
+// the backend can host both API and frontend for single-service deploys.
+const FRONTEND_DIST = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(FRONTEND_DIST)) {
+  console.log('Serving frontend from', FRONTEND_DIST);
+  app.use(express.static(FRONTEND_DIST));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
+  });
+}
 
 // --- ONLINE TEACHERS (simple in-memory for demo) ---
 let onlineTeachers = new Set();
