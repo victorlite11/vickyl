@@ -1,0 +1,41 @@
+name: Run migrations and seed (manual)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  migrate-seed:
+    name: Migrate & Seed Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: npm run migrate
+
+      - name: Run seed
+        working-directory: ./backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          TEACHER_PASSWORD: ${{ secrets.TEACHER_PASSWORD }}
+          AUTO_SEED: 1
+        run: npm run seed
+
+      - name: Done
+        run: echo "Migrate & seed job completed. Check backend database for seeded data."
