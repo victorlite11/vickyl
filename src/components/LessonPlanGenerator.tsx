@@ -81,8 +81,21 @@ const LessonPlanGenerator = () => {
     }
   };
 
-  // Use environment variable for API endpoint
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/generate-lesson-plan';
+  // Use environment variable for API endpoint (runtime-aware)
+  const BUILD_API = import.meta.env.VITE_API_URL || '';
+  function getApiBaseLocal() {
+    try {
+      if (typeof window !== 'undefined') {
+        const host = window.location.hostname;
+        const isLocalHostBuild = BUILD_API.includes('localhost') || BUILD_API.includes('127.0.0.1');
+        const runningLocally = host === 'localhost' || host === '127.0.0.1';
+        if (isLocalHostBuild && !runningLocally) return '/api';
+      }
+    } catch (e) {
+      // ignore
+    }
+    return BUILD_API || '/api';
+  }
 
   const generateLessonPlan = async () => {
     if (!lessonContent.trim()) {
@@ -128,7 +141,8 @@ const LessonPlanGenerator = () => {
   const submitToAdmin = async () => {
     if (!generatedPlan) return;
     try {
-      const response = await fetch('http://localhost:4000/api/submissions', {
+      const base = getApiBaseLocal();
+      const response = await fetch(`${base}/submissions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
