@@ -21,15 +21,28 @@ app.use(express.json());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// If a frontend build exists at ../dist, serve it as static files so
-// the backend can host both API and frontend for single-service deploys.
-const FRONTEND_DIST = path.join(__dirname, '..', 'dist');
-if (fs.existsSync(FRONTEND_DIST)) {
+// Prefer frontend build inside backend/dist (copied during build-and-prepare),
+// fall back to repo-level dist. This avoids relying on the root dist being
+// present after deploy steps.
+const FRONTEND_DIST_CANDIDATES = [
+  path.join(__dirname, 'dist'),
+  path.join(__dirname, '..', 'dist')
+];
+let FRONTEND_DIST = null;
+for (const cand of FRONTEND_DIST_CANDIDATES) {
+  if (fs.existsSync(cand)) { FRONTEND_DIST = cand; break; }
+}
+if (FRONTEND_DIST) {
   console.log('Serving frontend from', FRONTEND_DIST);
   app.use(express.static(FRONTEND_DIST));
+  // health check route and static fallback
+  app.get('/healthz', (req, res) => res.status(200).json({ ok: true }));
   app.get('*', (req, res) => {
     res.sendFile(path.join(FRONTEND_DIST, 'index.html'));
   });
+} else {
+  // expose a health endpoint even when frontend not present
+  app.get('/healthz', (req, res) => res.status(200).json({ ok: true }));
 }
 
 // --- ONLINE TEACHERS (simple in-memory for demo) ---
