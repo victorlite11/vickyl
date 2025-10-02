@@ -26,7 +26,7 @@ const TeacherChatPanel: React.FC = () => {
           const payload = JSON.parse(atob(token.split('.')[1]));
           if (payload.role === 'teacher') {
             // Fetch admin id from backend
-            const resAdmin = await fetch('http://localhost:4000/api/teachers');
+            const resAdmin = await fetch('/api/teachers');
             const users = await resAdmin.json();
             const admin = Array.isArray(users) ? users.find(u => u.role === 'admin') : null;
             if (admin) adminId = admin.id;
@@ -34,7 +34,7 @@ const TeacherChatPanel: React.FC = () => {
         } catch {}
       }
       if (!adminId) return setMessages([]);
-      const res = await fetch(`http://localhost:4000/api/messages?withUser=${adminId}`, {
+  const res = await fetch(`/api/messages?withUser=${adminId}`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -58,7 +58,7 @@ const TeacherChatPanel: React.FC = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:4000/api/messages', {
+  const res = await fetch('/api/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

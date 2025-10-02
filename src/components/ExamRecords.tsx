@@ -34,7 +34,7 @@ const ExamRecords: React.FC = () => {
 
   const fetchSubjects = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/subjects');
+  const res = await fetch('/api/subjects');
       const data = await res.json();
       setSubjects(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -46,7 +46,7 @@ const ExamRecords: React.FC = () => {
     if (!isAuthenticated) return alert('You must be logged in to add a subject');
     if (!newSubjectName.trim()) return;
     try {
-      const res = await fetch('http://localhost:4000/api/subjects', {
+  const res = await fetch('/api/subjects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ name: newSubjectName.trim() })
@@ -67,7 +67,7 @@ const ExamRecords: React.FC = () => {
     const defaults = ['Mathematics', 'English', 'Science', 'Social Studies', 'Computer Science', 'History'];
     try {
       for (const name of defaults) {
-        const res = await fetch('http://localhost:4000/api/subjects', {
+  const res = await fetch('/api/subjects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ name })
@@ -85,7 +85,7 @@ const ExamRecords: React.FC = () => {
 
   const fetchRecords = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/exam-records', { headers: { Authorization: `Bearer ${token}` } });
+  const res = await fetch('/api/exam-records', { headers: { Authorization: `Bearer ${token}` } });
       const d = await res.json();
       setRecords(Array.isArray(d) ? d : []);
     } catch (e) {
@@ -129,7 +129,7 @@ const ExamRecords: React.FC = () => {
       thirdTermCA: termValues.thirdTermCA || 0
     };
     try {
-      const res = await fetch('http://localhost:4000/api/exam-records', {
+  const res = await fetch('/api/exam-records', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -145,7 +145,7 @@ const ExamRecords: React.FC = () => {
 
   const exportCSV = async () => {
     try {
-      const res = await fetch('http://localhost:4000/api/exam-records/export/csv', { headers: { Authorization: `Bearer ${token}` } });
+  const res = await fetch('/api/exam-records/export/csv', { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return alert('Failed to export CSV');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

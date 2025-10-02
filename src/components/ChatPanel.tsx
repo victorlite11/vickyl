@@ -38,7 +38,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ teachers }) => {
   useEffect(() => {
     const fetchMessages = async () => {
       const token = localStorage.getItem('token');
-      let url = 'http://localhost:4000/api/messages';
+  let url = '/api/messages';
       if (selectedRecipient !== 'all') {
         url += `?withUser=${selectedRecipient}`;
       }
@@ -75,7 +75,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ teachers }) => {
         resourceName = resource.name;
       }
       const token = localStorage.getItem("token");
-      const res = await fetch('http://localhost:4000/api/messages', {
+  const res = await fetch('/api/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ teachers }) => {
       setMessage('');
       setResource(null);
       // Optionally, refresh messages
-      fetch('http://localhost:4000/api/messages', {
+  fetch('/api/messages', {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {})
         }

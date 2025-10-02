@@ -70,7 +70,7 @@ function AdminPanel() {
     const fetchMessages = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:4000/api/messages', {
+  const res = await fetch('/api/messages', {
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
@@ -103,7 +103,7 @@ function AdminPanel() {
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
-        const res = await fetch('http://localhost:4000/api/submissions');
+  const res = await fetch('/api/submissions');
         const data = await res.json();
         if (Array.isArray(data)) {
           setSubmissions(data);
@@ -134,7 +134,7 @@ function AdminPanel() {
   // Fetch teachers
   useEffect(() => {
     setLoadingTeachers(true);
-    fetch('http://localhost:4000/api/teachers')
+  fetch('/api/teachers')
       .then(async res => {
         if (!res.ok) throw new Error('Failed to fetch teachers');
         setTeachers(await res.json());
@@ -167,7 +167,7 @@ function AdminPanel() {
   const handleApprove = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:4000/api/submissions/${id}`, {
+  const res = await fetch(`/api/submissions/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +190,7 @@ function AdminPanel() {
   const handleReject = async (id: string) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:4000/api/submissions/${id}`, {
+  const res = await fetch(`/api/submissions/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -418,7 +418,7 @@ function AdminPanel() {
                       e.preventDefault();
                       setAddStaffLoading(true);
                       try {
-                        const res = await fetch('http://localhost:4000/api/register', {
+                        const res = await fetch('/api/register', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify(addStaffForm)
@@ -430,7 +430,7 @@ function AdminPanel() {
                         setAddStaffForm({ name: '', email: '', password: '', role: 'teacher' });
                         // Refresh staff list
                         setLoadingTeachers(true);
-                        fetch('http://localhost:4000/api/teachers')
+                        fetch('/api/teachers')
                           .then(async res => {
                             if (!res.ok) return setTeachers([]);
                             try { setTeachers(await res.json()); } catch { setTeachers([]); }
@@ -488,7 +488,7 @@ function AdminPanel() {
                           <Button size="sm" variant="destructive" onClick={async () => {
                             if (!window.confirm('Are you sure you want to remove this staff member?')) return;
                             try {
-                              const res = await fetch(`http://localhost:4000/api/users/${t.id}`, {
+                              const res = await fetch(`/api/users/${t.id}`, {
                                 method: 'DELETE',
                                 headers: { 'Content-Type': 'application/json' }
                               });
@@ -497,7 +497,7 @@ function AdminPanel() {
                               toast.success('Staff removed successfully!');
                               // Refresh staff list
                               setLoadingTeachers(true);
-                              fetch('http://localhost:4000/api/teachers')
+                              fetch('/api/teachers')
                                 .then(async res => {
                                   if (!res.ok) return setTeachers([]);
                                   try { setTeachers(await res.json()); } catch { setTeachers([]); }

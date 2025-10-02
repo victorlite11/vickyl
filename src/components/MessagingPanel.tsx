@@ -18,7 +18,7 @@ const MessagingPanel = ({ token, teachers }) => {
   const sendMessage = async () => {
     if (!message.trim()) return toast.error('Message cannot be empty');
     try {
-      await fetch('http://localhost:4000/api/messages', {
+  await fetch('/api/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

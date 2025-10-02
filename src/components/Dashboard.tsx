@@ -9,12 +9,12 @@ import TeacherChatPanel from './TeacherChatPanel';
 import ExamRecords from './ExamRecords';
 
 const fetchDashboardStats = async () => {
-  const res = await fetch('http://localhost:4000/api/stats');
+  const res = await fetch('/api/stats');
   return await res.json();
 };
 
 const fetchRecentActivity = async () => {
-  const res = await fetch('http://localhost:4000/api/recent');
+  const res = await fetch('/api/recent');
   return await res.json();
 };
 
@@ -24,7 +24,7 @@ const Dashboard = () => {
   React.useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    fetch('http://localhost:4000/api/school-quota', {
+  fetch('/api/school-quota', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())

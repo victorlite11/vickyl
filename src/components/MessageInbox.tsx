@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 const MessageInbox = ({ token }) => {
   const [messages, setMessages] = useState([]);
   useEffect(() => {
-    fetch('http://localhost:4000/api/messages', {
+  fetch('/api/messages', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
