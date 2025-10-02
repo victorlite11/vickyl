@@ -2,7 +2,9 @@ import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
 
-// Check for required environment variables at app startup
+// At build time we may not have VITE_* vars set when using a single-service deploy
+// (the frontend can fall back to a runtime-relative `/api` path). Warn instead
+// of throwing so the app can still load and use runtime fallbacks.
 const requiredEnvVars = [
   'VITE_API_URL',
   'VITE_OPENAI_API_KEY'
@@ -10,10 +12,8 @@ const requiredEnvVars = [
 
 requiredEnvVars.forEach(variable => {
   if (!import.meta.env[variable]) {
-    console.error(`Missing required environment variable: ${variable}`);
-    if (import.meta.env.MODE === 'production') {
-      throw new Error(`Missing env var: ${variable}`);
-    }
+    // Log prominently so CI/build logs show the missing variable.
+    console.warn(`Missing environment variable at build-time: ${variable}. The app will attempt runtime fallbacks.`);
   }
 });
 
