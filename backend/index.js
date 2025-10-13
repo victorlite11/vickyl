@@ -436,8 +436,18 @@ async function createTablesIfNeeded() {
     senderId INTEGER,
     recipientId INTEGER,
     content TEXT,
+    resourceUrl TEXT,
+    resourceName TEXT,
     created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  // Ensure columns exist in older DBs
+  try {
+    await db.run("ALTER TABLE messages ADD COLUMN IF NOT EXISTS resourceUrl TEXT");
+    await db.run("ALTER TABLE messages ADD COLUMN IF NOT EXISTS resourceName TEXT");
+  } catch (e) {
+    try { await db.run('ALTER TABLE messages ADD COLUMN resourceUrl TEXT'); } catch (err) {}
+    try { await db.run('ALTER TABLE messages ADD COLUMN resourceName TEXT'); } catch (err) {}
+  }
   await db.run(`CREATE TABLE IF NOT EXISTS subjects (
     id SERIAL PRIMARY KEY,
     name TEXT UNIQUE,

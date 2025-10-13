@@ -29,8 +29,20 @@ async function migrate() {
       senderId INTEGER,
       recipientId INTEGER,
       content TEXT,
+      resourceUrl TEXT,
+      resourceName TEXT,
       created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // For existing databases, attempt to add the new columns if they don't exist.
+    try {
+      await db.run("ALTER TABLE messages ADD COLUMN IF NOT EXISTS resourceUrl TEXT");
+      await db.run("ALTER TABLE messages ADD COLUMN IF NOT EXISTS resourceName TEXT");
+    } catch (e) {
+      // Some adapters (older sqlite) don't support IF NOT EXISTS in ALTER; try generic ALTER and ignore errors
+      try { await db.run('ALTER TABLE messages ADD COLUMN resourceUrl TEXT'); } catch (err) {}
+      try { await db.run('ALTER TABLE messages ADD COLUMN resourceName TEXT'); } catch (err) {}
+    }
 
     await db.run(`CREATE TABLE IF NOT EXISTS subjects (
       id SERIAL PRIMARY KEY,
