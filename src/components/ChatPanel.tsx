@@ -4,6 +4,7 @@ import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { Button } from '@/components/ui/button';
 import { User, Paperclip } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 interface Teacher {
   id: string;
@@ -56,6 +57,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ teachers }) => {
       setLoading(false);
     };
     fetchMessages();
+
+    // setup socket connection
+    let socket: any;
+    try {
+      socket = io(undefined, { path: '/socket.io' });
+      socket.on('message', (m: any) => {
+        // refresh messages when a new message is broadcast
+        fetchMessages();
+      });
+    } catch (e) {}
+    return () => { if (socket) socket.disconnect(); };
   }, [selectedRecipient]);
 
   useEffect(() => {
@@ -70,9 +82,16 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ teachers }) => {
       let resourceUrl = undefined;
       let resourceName = undefined;
       if (resource) {
-        // Simulate upload (replace with real upload logic)
-        resourceUrl = URL.createObjectURL(resource);
-        resourceName = resource.name;
+        // Upload resource to backend
+        const token = localStorage.getItem('token');
+        const fd = new FormData();
+        fd.append('file', resource);
+        const up = await fetch('/api/messages/upload', { method: 'POST', body: fd, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) } });
+        if (up.ok) {
+          const body = await up.json();
+          resourceUrl = body.url;
+          resourceName = body.name;
+        }
       }
       const token = localStorage.getItem("token");
   const res = await fetch('/api/messages', {

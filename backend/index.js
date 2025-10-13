@@ -6,16 +6,33 @@ import bcrypt from 'bcryptjs';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import http from 'http';
+import multer from 'multer';
+import { Server as IOServer } from 'socket.io';
 import * as db from './db.js';
 import { seed } from './seed.js';
 
 const app = express();
+const server = http.createServer(app);
 
 // will initialize DB (sqlite or pg) below
 const SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
 app.use(cors());
 app.use(express.json());
+
+// setup multer for uploads (stores in memory for demo)
+const upload = multer({ storage: multer.memoryStorage() });
+
+// attach Socket.IO
+const io = new IOServer(server, {
+  cors: { origin: '*' }
+});
+
+io.on('connection', socket => {
+  console.log('socket connected', socket.id);
+  socket.on('disconnect', () => console.log('socket disconnected', socket.id));
+});
 
 // Provide __dirname for ES module scope
 const __filename = fileURLToPath(import.meta.url);
@@ -187,7 +204,7 @@ app.patch('/api/submissions/:id', auth, async (req, res) => {
 // --- MESSAGES ENDPOINTS ---
 // Send message (admin or teacher)
 app.post('/api/messages', auth, async (req, res) => {
-  const { content, recipientId, broadcast } = req.body;
+  const { content, recipientId, broadcast, resourceUrl, resourceName } = req.body;
   if (!content) return res.status(400).json({ error: 'Missing content' });
   try {
     if (req.user.role === 'admin') {
@@ -197,18 +214,22 @@ app.post('/api/messages', auth, async (req, res) => {
         let teachers = await db.all('SELECT id FROM users WHERE role = $1', ['teacher']);
         if (!Array.isArray(teachers)) teachers = [];
         for (const t of teachers) {
-          await db.run('INSERT INTO messages (senderId, recipientId, content) VALUES (?, ?, ?)', [req.user.id, t.id, content]);
+          await db.run('INSERT INTO messages (senderId, recipientId, content, resourceUrl, resourceName) VALUES (?, ?, ?, ?, ?)', [req.user.id, t.id, content, resourceUrl || null, resourceName || null]);
         }
+        // broadcast to clients via socket
+        io.emit('message', { senderId: req.user.id, content, broadcast: true, resourceUrl, resourceName });
         return res.json({ success: true, broadcast: true });
       } else {
-        await db.run('INSERT INTO messages (senderId, recipientId, content) VALUES (?, ?, ?)', [req.user.id, recipientId, content]);
+        await db.run('INSERT INTO messages (senderId, recipientId, content, resourceUrl, resourceName) VALUES (?, ?, ?, ?, ?)', [req.user.id, recipientId, content, resourceUrl || null, resourceName || null]);
+        io.emit('message', { senderId: req.user.id, recipientId, content, resourceUrl, resourceName });
         return res.json({ success: true });
       }
     } else if (req.user.role === 'teacher') {
       // Teachers can only send to admin
       const admin = await db.get('SELECT id FROM users WHERE role = ? LIMIT 1', ['admin']);
       if (!admin) return res.status(500).json({ error: 'No admin found' });
-      await db.run('INSERT INTO messages (senderId, recipientId, content) VALUES (?, ?, ?)', [req.user.id, admin.id, content]);
+      await db.run('INSERT INTO messages (senderId, recipientId, content, resourceUrl, resourceName) VALUES (?, ?, ?, ?, ?)', [req.user.id, admin.id, content, resourceUrl || null, resourceName || null]);
+      io.emit('message', { senderId: req.user.id, recipientId: admin.id, content, resourceUrl, resourceName });
       return res.json({ success: true });
     } else {
       return res.status(403).json({ error: 'Forbidden' });
@@ -217,6 +238,25 @@ app.post('/api/messages', auth, async (req, res) => {
     res.status(500).json({ error: 'Failed to send message' });
   }
 });
+
+// Upload attachment and return a URL (for demo we serve from /uploads by writing to disk)
+app.post('/api/messages/upload', auth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
+    const filename = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+    const filepath = path.join(uploadsDir, filename);
+    fs.writeFileSync(filepath, req.file.buffer);
+    const url = `/uploads/${filename}`;
+    res.json({ url, name: req.file.originalname });
+  } catch (e) {
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
+
+// Serve uploaded files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // --- SCHOOL QUOTA ENDPOINT (stub) ---
 app.get('/api/school-quota', auth, (req, res) => {
   // Stub: return dummy quota info
@@ -230,12 +270,31 @@ app.get('/api/messages', auth, async (req, res) => {
     let rows;
     if (withUser) {
       // Fetch all messages between current user and withUser
-      rows = await db.all(`SELECT * FROM messages WHERE (senderId = ? AND recipientId = ?) OR (senderId = ? AND recipientId = ?) ORDER BY created ASC`, [req.user.id, withUser, withUser, req.user.id]);
+      rows = await db.all(`SELECT m.*, su.name as senderName, su.role as senderRole, ru.name as recipientName
+        FROM messages m
+        LEFT JOIN users su ON m.senderId = su.id
+        LEFT JOIN users ru ON m.recipientId = ru.id
+        WHERE (m.senderId = ? AND m.recipientId = ?) OR (m.senderId = ? AND m.recipientId = ?) ORDER BY m.created ASC`, [req.user.id, withUser, withUser, req.user.id]);
     } else {
       // Default: fetch all messages sent to current user
-      rows = await db.all('SELECT * FROM messages WHERE recipientId = ? ORDER BY created DESC', [req.user.id]);
+      rows = await db.all(`SELECT m.*, su.name as senderName, su.role as senderRole, ru.name as recipientName
+        FROM messages m
+        LEFT JOIN users su ON m.senderId = su.id
+        LEFT JOIN users ru ON m.recipientId = ru.id
+        WHERE m.recipientId = ? ORDER BY m.created DESC`, [req.user.id]);
     }
-    res.json(rows || []);
+    // Normalize shape: ensure senderId/recipientId numeric and include senderName/role
+    const out = (rows || []).map(r => ({
+      id: r.id,
+      senderId: r.senderId,
+      senderName: r.senderName || null,
+      senderRole: r.senderRole || null,
+      recipientId: r.recipientId,
+      recipientName: r.recipientName || null,
+      content: r.content,
+      created: r.created
+    }));
+    res.json(out);
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch messages' });
   }
@@ -409,7 +468,7 @@ async function start() {
       try { await seed(); } catch (e) { console.warn('Auto-seed failed', e); }
     }
     const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () => console.log('Backend running on port', PORT));
+    server.listen(PORT, () => console.log('Backend running on port', PORT));
   } catch (e) {
     console.error('Failed to start server:', e);
     process.exit(1);

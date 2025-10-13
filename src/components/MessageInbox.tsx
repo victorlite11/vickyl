@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -6,12 +7,18 @@ import { toast } from 'sonner';
 const MessageInbox = ({ token }) => {
   const [messages, setMessages] = useState([]);
   useEffect(() => {
-  fetch('/api/messages', {
+  const fetchMessages = () => {
+    fetch('/api/messages', {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(data => Array.isArray(data) ? setMessages(data) : setMessages([]))
       .catch(() => setMessages([]));
+  };
+  fetchMessages();
+  const socket = io(undefined, { path: '/socket.io' });
+  socket.on('message', () => fetchMessages());
+  return () => socket.disconnect();
   }, [token]);
 
   return (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -13,6 +14,11 @@ const MessagingPanel = ({ token, teachers }) => {
     if (!broadcast && teachers.length > 0 && !recipientId) {
       setRecipientId(teachers[0].id);
     }
+    const socket = io(undefined, { path: '/socket.io' });
+    socket.on('message', () => {
+      // could re-fetch teacher list or update UI; currently we'll show a toast
+    });
+    return () => socket.disconnect();
   }, [teachers, broadcast]);
 
   const sendMessage = async () => {
