@@ -173,9 +173,14 @@ const ExamRecords: React.FC = () => {
               <div className="p-2 text-sm text-gray-500">No subjects yet. You can add one or seed common subjects.</div>
             ) : (
               subjects.map(s => (
-                <div key={s.id} className={`p-2 border rounded ${String(s.id) === String(subjectId) ? 'bg-blue-50' : ''}`} onClick={() => setSubjectId(s.id)}>
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setSubjectId(s.id)}
+                  className={`w-full text-left p-2 border rounded ${String(s.id) === String(subjectId) ? 'bg-blue-50' : 'bg-white hover:bg-gray-50'}`}
+                >
                   {s.name}
-                </div>
+                </button>
               ))
             )}
           </div>
@@ -195,13 +200,13 @@ const ExamRecords: React.FC = () => {
           <h3 className="font-medium mb-2">Add Record</h3>
           {error && <div className="text-red-600 mb-2">{error}</div>}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <input value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="Student name" className="p-2 border rounded" />
+            <input value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="Student name" className="w-full p-2 border rounded" />
             <select value={subjectId} onChange={e => {
               const v = e.target.value;
               // if backend subjects exist, value will be numeric id
               if (subjects.length > 0) setSubjectId(Number(v));
               else setSubjectId(v); // selected default name (string)
-            }} className="p-2 border rounded">
+            }} className="w-full p-2 border rounded">
               <option value="">Select subject</option>
               {subjects.length > 0 ? (
                 subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)
@@ -212,16 +217,15 @@ const ExamRecords: React.FC = () => {
             {subjects.length === 0 && (
               <div className="text-sm text-gray-500 mt-1">Showing suggested subject names. To save records, please add/seed subjects (login required).</div>
             )}
+            <input value={termValues.firstTermScore} onChange={e => setTermValues(v => ({ ...v, firstTermScore: e.target.value }))} placeholder="First term score" className="w-full p-2 border rounded" />
+            <input value={termValues.firstTermCA} onChange={e => setTermValues(v => ({ ...v, firstTermCA: e.target.value }))} placeholder="First term CA" className="w-full p-2 border rounded" />
+            <input value={termValues.secondTermScore} onChange={e => setTermValues(v => ({ ...v, secondTermScore: e.target.value }))} placeholder="Second term score" className="w-full p-2 border rounded" />
+            <input value={termValues.secondTermCA} onChange={e => setTermValues(v => ({ ...v, secondTermCA: e.target.value }))} placeholder="Second term CA" className="w-full p-2 border rounded" />
+            <input value={termValues.thirdTermScore} onChange={e => setTermValues(v => ({ ...v, thirdTermScore: e.target.value }))} placeholder="Third term score" className="w-full p-2 border rounded" />
+            <input value={termValues.thirdTermCA} onChange={e => setTermValues(v => ({ ...v, thirdTermCA: e.target.value }))} placeholder="Third term CA" className="w-full p-2 border rounded" />
 
-            <input value={termValues.firstTermScore} onChange={e => setTermValues(v => ({ ...v, firstTermScore: e.target.value }))} placeholder="First term score" className="p-2 border rounded" />
-            <input value={termValues.firstTermCA} onChange={e => setTermValues(v => ({ ...v, firstTermCA: e.target.value }))} placeholder="First term CA" className="p-2 border rounded" />
-            <input value={termValues.secondTermScore} onChange={e => setTermValues(v => ({ ...v, secondTermScore: e.target.value }))} placeholder="Second term score" className="p-2 border rounded" />
-            <input value={termValues.secondTermCA} onChange={e => setTermValues(v => ({ ...v, secondTermCA: e.target.value }))} placeholder="Second term CA" className="p-2 border rounded" />
-            <input value={termValues.thirdTermScore} onChange={e => setTermValues(v => ({ ...v, thirdTermScore: e.target.value }))} placeholder="Third term score" className="p-2 border rounded" />
-            <input value={termValues.thirdTermCA} onChange={e => setTermValues(v => ({ ...v, thirdTermCA: e.target.value }))} placeholder="Third term CA" className="p-2 border rounded" />
-
-            <button onClick={addRecord} disabled={!isAuthenticated} className={`col-span-2 mt-2 p-2 rounded ${isAuthenticated ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>Save Record</button>
-            <button onClick={exportCSV} disabled={!isAuthenticated} className={`col-span-2 mt-2 p-2 rounded ${isAuthenticated ? 'bg-gray-600 text-white' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>Export CSV</button>
+            <button onClick={addRecord} disabled={!isAuthenticated} className={`col-span-2 mt-2 p-2 rounded w-full ${isAuthenticated ? 'bg-green-600 text-white' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>Save Record</button>
+            <button onClick={exportCSV} disabled={!isAuthenticated} className={`col-span-2 mt-2 p-2 rounded w-full ${isAuthenticated ? 'bg-gray-600 text-white' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`}>Export CSV</button>
             {!isAuthenticated && (
               <div className="col-span-2 mt-2 text-sm text-yellow-700">You must be logged in to save records or export CSV.</div>
             )}
@@ -231,7 +235,8 @@ const ExamRecords: React.FC = () => {
 
       <div className="mt-6 bg-white p-4 rounded shadow">
         <h3 className="font-medium mb-2">Records</h3>
-        <div className="overflow-x-auto">
+        {/* Table for md+ screens */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full table-auto border-collapse">
             <thead>
               <tr className="text-left">
@@ -266,6 +271,29 @@ const ExamRecords: React.FC = () => {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Card list for small screens */}
+        <div className="md:hidden space-y-3">
+          {records.length === 0 && <div className="text-sm text-gray-500">No records yet.</div>}
+          {records.map(r => (
+            <div key={r.id} className="p-3 border rounded bg-gray-50">
+              <div className="flex justify-between">
+                <div className="font-medium">{r.studentName}</div>
+                <div className="text-sm text-gray-600">#{r.id}</div>
+              </div>
+              <div className="text-sm text-gray-600">{r.subjectName} • {r.teacherName}</div>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                <div>1st: <span className="font-medium">{r.firstTermScore}</span></div>
+                <div>1st CA: <span className="font-medium">{r.firstTermCA}</span></div>
+                <div>2nd: <span className="font-medium">{r.secondTermScore}</span></div>
+                <div>2nd CA: <span className="font-medium">{r.secondTermCA}</span></div>
+                <div>3rd: <span className="font-medium">{r.thirdTermScore}</span></div>
+                <div>3rd CA: <span className="font-medium">{r.thirdTermCA}</span></div>
+              </div>
+              <div className="mt-2 text-xs text-gray-500">{r.created}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
