@@ -124,34 +124,40 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ teachers }) => {
         </select>
       </div>
       <div className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-xl p-2 h-64 overflow-y-auto mb-2 flex flex-col border border-gray-100">
-        {loading ? (
+          {loading ? (
           <div className="text-gray-400 text-center">Loading messages...</div>
         ) : messages.length === 0 ? (
           <div className="text-gray-400 text-center">No messages yet.</div>
         ) : (
-          messages.map(msg => (
-            <div
-              key={msg.id}
-              className={`mb-1 flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div className={`max-w-xs px-3 py-2 rounded-2xl shadow text-xs relative ${msg.sender === 'admin' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="inline-block w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
-                    {msg.sender === 'admin' ? 'A' : (msg.sender[0] || 'U').toUpperCase()}
-                  </span>
-                  <span className="font-semibold text-xs">{msg.sender === 'admin' ? 'You' : msg.sender}</span>
-                </div>
-                <div>{msg.content}</div>
+          messages.map(msg => {
+            // determine if the message was sent by current user
+            let currentUserId = null;
+            try {
+              const tok = localStorage.getItem('token');
+              if (tok) currentUserId = JSON.parse(atob(tok.split('.')[1])).id;
+            } catch (e) {}
+            const byMe = String(msg.senderId) === String(currentUserId);
+            return (
+              <div key={msg.id} className={`mb-1 flex ${byMe ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-xs px-3 py-2 rounded-2xl shadow text-xs relative ${byMe ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="w-6 h-6 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
+                        {byMe ? 'A' : (msg.senderName && msg.senderName[0]) || 'U'}
+                      </span>
+                      <span className="font-semibold text-xs">{byMe ? 'You' : (msg.senderName || 'Unknown')}</span>
+                    </div>
+                    <div>{msg.content}</div>
                 {msg.resourceUrl && msg.resourceName && (
                   <div className="mt-2 flex items-center gap-1">
                     <Paperclip className="w-4 h-4 text-blue-400" />
                     <a href={msg.resourceUrl} target="_blank" rel="noopener noreferrer" className="underline text-blue-200 hover:text-blue-100 text-xs">{msg.resourceName}</a>
                   </div>
                 )}
-                <div className="text-[10px] text-gray-300 mt-1 text-right">{new Date(msg.created).toLocaleTimeString()}</div>
-              </div>
-            </div>
-          ))
+                    <div className="text-[10px] text-gray-300 mt-1 text-right">{new Date(msg.created).toLocaleTimeString()}</div>
+                  </div>
+                </div>
+              );
+            })
         )}
         <div ref={chatEndRef} />
       </div>
