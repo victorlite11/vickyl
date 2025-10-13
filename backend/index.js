@@ -99,6 +99,7 @@ app.post('/api/signup', async (req, res) => {
     const user = { id: userId, name, email, role: userRole };
     const token = jwt.sign(user, SECRET, { expiresIn: '7d' });
     res.json({ success: true, user, token });
+    try { io.emit('user:created', { id: userId, name, email, role: userRole }); } catch (e) {}
   } catch (e) {
     if (e.message.includes('UNIQUE')) return res.status(400).json({ error: 'Email already registered' });
     res.status(500).json({ error: 'Signup failed' });
@@ -116,6 +117,7 @@ app.post('/api/register', async (req, res) => {
     const user = { id: userId, name, email, role: userRole };
     const token = jwt.sign(user, SECRET, { expiresIn: '7d' });
     res.json({ user, token });
+    try { io.emit('user:created', { id: userId, name, email, role: userRole }); } catch (e) {}
   } catch (e) {
     if (e.message.includes('UNIQUE')) return res.status(400).json({ error: 'Email already registered' });
     res.status(500).json({ error: 'Registration failed' });
@@ -213,24 +215,34 @@ app.post('/api/messages', auth, async (req, res) => {
         // Send to all teachers
         let teachers = await db.all('SELECT id FROM users WHERE role = $1', ['teacher']);
         if (!Array.isArray(teachers)) teachers = [];
+        const created = [];
         for (const t of teachers) {
-          await db.run('INSERT INTO messages (senderId, recipientId, content, resourceUrl, resourceName) VALUES (?, ?, ?, ?, ?)', [req.user.id, t.id, content, resourceUrl || null, resourceName || null]);
+          const info = await db.run('INSERT INTO messages (senderId, recipientId, content, resourceUrl, resourceName) VALUES (?, ?, ?, ?, ?) RETURNING id, created', [req.user.id, t.id, content, resourceUrl || null, resourceName || null]);
+          const id = info.lastID || (info.rows && info.rows[0] && info.rows[0].id);
+          const createdAt = info.created || (info.rows && info.rows[0] && info.rows[0].created) || new Date().toISOString();
+          const msg = { id, senderId: req.user.id, recipientId: t.id, content, resourceUrl, resourceName, created: createdAt };
+          created.push(msg);
+          io.emit('message', msg);
         }
-        // broadcast to clients via socket
-        io.emit('message', { senderId: req.user.id, content, broadcast: true, resourceUrl, resourceName });
-        return res.json({ success: true, broadcast: true });
+        return res.json({ success: true, broadcast: true, messages: created });
       } else {
-        await db.run('INSERT INTO messages (senderId, recipientId, content, resourceUrl, resourceName) VALUES (?, ?, ?, ?, ?)', [req.user.id, recipientId, content, resourceUrl || null, resourceName || null]);
-        io.emit('message', { senderId: req.user.id, recipientId, content, resourceUrl, resourceName });
-        return res.json({ success: true });
+  const info = await db.run('INSERT INTO messages (senderId, recipientId, content, resourceUrl, resourceName) VALUES (?, ?, ?, ?, ?) RETURNING id, created', [req.user.id, recipientId, content, resourceUrl || null, resourceName || null]);
+  const id = info.lastID || (info.rows && info.rows[0] && info.rows[0].id);
+  const createdAt = info.created || (info.rows && info.rows[0] && info.rows[0].created) || new Date().toISOString();
+  const msg = { id, senderId: req.user.id, recipientId, content, resourceUrl, resourceName, created: createdAt };
+  io.emit('message', msg);
+  return res.json({ success: true, message: msg });
       }
     } else if (req.user.role === 'teacher') {
       // Teachers can only send to admin
       const admin = await db.get('SELECT id FROM users WHERE role = ? LIMIT 1', ['admin']);
       if (!admin) return res.status(500).json({ error: 'No admin found' });
-      await db.run('INSERT INTO messages (senderId, recipientId, content, resourceUrl, resourceName) VALUES (?, ?, ?, ?, ?)', [req.user.id, admin.id, content, resourceUrl || null, resourceName || null]);
-      io.emit('message', { senderId: req.user.id, recipientId: admin.id, content, resourceUrl, resourceName });
-      return res.json({ success: true });
+  const info = await db.run('INSERT INTO messages (senderId, recipientId, content, resourceUrl, resourceName) VALUES (?, ?, ?, ?, ?) RETURNING id, created', [req.user.id, admin.id, content, resourceUrl || null, resourceName || null]);
+  const id = info.lastID || (info.rows && info.rows[0] && info.rows[0].id);
+  const createdAt = info.created || (info.rows && info.rows[0] && info.rows[0].created) || new Date().toISOString();
+  const msg = { id, senderId: req.user.id, recipientId: admin.id, content, resourceUrl, resourceName, created: createdAt };
+  io.emit('message', msg);
+  return res.json({ success: true, message: msg });
     } else {
       return res.status(403).json({ error: 'Forbidden' });
     }

@@ -18,6 +18,13 @@ const MessagingPanel = ({ token, teachers }) => {
     socket.on('message', () => {
       // could re-fetch teacher list or update UI; currently we'll show a toast
     });
+    socket.on('user:created', (u: any) => {
+      // if a new teacher is created, and user is admin, refresh teachers list by reloading page or showing a notice
+      // here we'll trigger a small visual note
+      if (u && u.role === 'teacher') {
+        // no-op: parent should re-fetch teachers; you can add a callback prop for that
+      }
+    });
     return () => socket.disconnect();
   }, [teachers, broadcast]);
 

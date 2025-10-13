@@ -66,6 +66,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ teachers }) => {
         // refresh messages when a new message is broadcast
         fetchMessages();
       });
+      socket.on('user:created', (u: any) => {
+        // append to teachers list if relevant
+        if (u && u.role === 'teacher') {
+          setMessages(prev => prev); // noop to trigger render if needed
+        }
+      });
     } catch (e) {}
     return () => { if (socket) socket.disconnect(); };
   }, [selectedRecipient]);
